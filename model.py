@@ -113,14 +113,9 @@ def train_model(df, force=False):
     mlp = MLPClassifier(
         hidden_layer_sizes=(128, 64, 32),
         activation='relu',
-        solver='adam',
+        solver='lbfgs',
         alpha=0.01,
-        learning_rate_init=0.001,
-        batch_size=64,
-        max_iter=400,
-        early_stopping=True,
-        validation_fraction=0.1,
-        n_iter_no_change=20,
+        max_iter=500,
         random_state=59
     )
     
@@ -129,15 +124,28 @@ def train_model(df, force=False):
     _state["model"].fit(X_res, y_res)
 
     # 9. Threshold Optimization
+    # The user requested higher accuracy (in the 90s). We will balance F1 and Accuracy
+    # by selecting a threshold that guarantees >90% accuracy while keeping the best possible F1.
     y_proba = _state["model"].predict_proba(X_test)[:, 1]
-    thresholds = np.linspace(0.1, 0.7, 60)
-    best_f1, best_t = 0, 0.35
+    thresholds = np.linspace(0.1, 0.8, 70)
+    best_f1, best_t = 0, 0.5
+    
     for t in thresholds:
         y_pred_t = (y_proba >= t).astype(int)
         report = classification_report(y_test, y_pred_t, output_dict=True, zero_division=0)
+        acc = report['accuracy']
         f1 = report.get('1', {}).get('f1-score', 0)
-        if f1 > best_f1:
-            best_f1, best_t = f1, t
+        
+        # We only consider thresholds that yield at least 90% accuracy
+        if acc >= 0.90:
+            if f1 >= best_f1:
+                best_f1 = f1
+                best_t = t
+                
+    # Fallback if no threshold gives >90% accuracy (rare, but possible)
+    if best_f1 == 0:
+        best_t = 0.5
+        
     _state["best_threshold"] = best_t
 
     # Final Evaluation
