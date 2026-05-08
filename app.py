@@ -196,16 +196,16 @@ label { color: #a0aec0 !important; }
 # LOAD & TRAIN MODEL
 # ============================================================
 @st.cache_resource(show_spinner=False)
-def load_model(dummy_cache_breaker=1):
+def load_model(dummy_cache_breaker=3):
     df = pd.read_csv(
         r"C:\Users\Dell\OneDrive - October 6 University Egypt\Desktop\stroke-ai-system\healthcare-dataset-stroke-data.csv"
     )
-    # Force train once if needed, though test_train.py already created the file
-    train_model(df, force=False)
+    # Force load/train
+    train_model(df, force=False) 
     return get_model_stats()
 
 with st.spinner("🧠 Loading AI Model..."):
-    stats = load_model(dummy_cache_breaker=2)
+    stats = load_model(dummy_cache_breaker=3)
 
 
 # ============================================================
